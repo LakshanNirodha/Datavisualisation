@@ -1,49 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-	<meta charset="UTF-8"/>
-	<meta name="description"	content="Data Visualisation"/>
-	<meta name="keywords"		  content="HTML, CSS, D3"/>
-	<meta name="author"			  content="Yusheng Lun"/>
-
-	<title>line chart</title>
+    <meta charset="UTF-8"/>
+    <meta name="description" content="Data Visualization"/>
+    <meta name="keywords" content="HTML, CSS, D3"/>
+    <meta name="author" content="Yusheng Lun"/>
+    <title>Multiple Lines Chart</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
-
 </head>
-	
 <body>
-	
-	<script>
-		var w = 600;
-		var h = 300;
-		
+    <h1>Health and Social Employment by Country</h1>
+    <script>
+        var w = 900;
+        var h = 500;
+        var padding = 60;
 
-		var parseYear = d3.timeParse("%Y");
+        var customColors = [
+            "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+            "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+            "#393b79", "#637939", "#8c6d31", "#843c39", "#7b4173",
+            "#5254a3", "#6b6ecf", "#9c9ede", "#cedb9c", "#e7ba52",
+            "#e7969c", "#de9ed6", "#393b79", "#637939", "#8c6d31"
+        ];
 
-		var xScale = d3.scaleTime().range([0, w]);
-		var yScale = d3.scaleLinear().range([h, 0]);
+        // Set the ranges
+        var xScale = d3.scaleTime().range([padding, w - padding]);
+        var yScale = d3.scaleLinear().range([h - padding, padding]);
 
-		var line = d3.line()
-		    .x(function(d){ return xScale(d.year);})
-			.y(function(d){ return yScale(d.value);});
+        // Define the line
+        var line = d3.line()
+            .x(function(d) { return xScale(d.Year); })
+            .y(function(d) { return yScale(d.Value); });
 
-		d3.csv("healthreasource.csv").then(function(data) {
-			data.forEach(function(d) {
-				d.year = 
-				d.vlaue = ; 
-			})
-		
-		});
-	</script>
+        // Append the SVG object to the body of the page
+        var svg = d3.select("body")
+            .append("svg")
+            .attr("width", w)
+            .attr("height", h);
 
-</body>	
+        // Load the data
+        d3.csv("healthreasource.csv").then(function(data) {
+            // Format the data
+            data.forEach(function(d) {
+                d.Year = d3.timeParse("%Y")(d.Year);
+                d.Value = +d.Value;
+            });
 
-<footer>
-	<p>COS30045 Data Visualisation</p>
-	<p>Yusheng Lun</p>
-</footer>
+            // Nest the entries by country
+            var dataNest = d3.group(data, d => d.Country);
 
+            // Scale the range of the data
+            xScale.domain(d3.extent(data, function(d) { return d.Year; }));
+            yScale.domain(d3.extent(data, function(d){ return d.Value;}));//([0, 25000000]);
+
+            // Set the color scale
+            var color = d3.scaleOrdinal(customColors);
+
+            // Loop through each country / key
+            dataNest.forEach(function(countryData, country) {
+                svg.append("path")
+                    .data([countryData])
+                    .attr("class", "line")
+                    .style("stroke", function() {
+                        return color(country);
+                    })
+                    .attr("d", line);
+            });
+
+            // Add the X Axis
+            svg.append("g")
+                .attr("transform", "translate(0," + (h - padding) + ")")
+                .call(d3.axisBottom(xScale));
+
+            // Add the Y Axis
+            svg.append("g")
+                .attr("transform", "translate(" + padding + ",0)")
+                .call(d3.axisLeft(yScale));
+
+            // Add a legend
+            var legend = svg.selectAll(".legend")
+                .data(dataNest.keys())
+                .enter().append("g")
+                .attr("class", "legend")
+                .attr("transform", function(d, i) {
+                    return "translate(0," + i * 20 + ")";
+                });
+
+            legend.append("rect")
+                .attr("x", w - 18)
+                .attr("width", 18)
+                .attr("height", 18)
+                .style("fill", function(d) { return color(d); });
+
+            legend.append("text")
+                .attr("x", w - 24)
+                .attr("y", 9)
+                .attr("dy", ".35em")
+                .style("text-anchor", "end")
+                .text(function(d) { return d; });
+        });
+    </script>
+
+    <style>
+        .line {
+            fill: none;
+            stroke-width: 2px;
+        }
+
+        .legend rect {
+            stroke-width: 2;
+        }
+    </style>
+
+    <footer>
+        <p>COS30045 Data Visualization</p>
+        <p>Yusheng Lun</p>
+    </footer>
 </body>
 </html>
-
